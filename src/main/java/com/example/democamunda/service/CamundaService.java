@@ -1,6 +1,7 @@
 package com.example.democamunda.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,6 +15,7 @@ public class CamundaService {
 
     @Autowired
     private RestTemplate restTemplate;
+//    @Value("${camunda.base-url}")
 
     private final String camundaBaseUrl = "http://localhost:8080/engine-rest";
 
@@ -53,5 +55,46 @@ public class CamundaService {
         } else {
             System.err.println("Failed to complete the task. Response: " + response.getBody());
         }
+    }
+
+
+    public void treatOrder(String processInstanceId, boolean isAccepted) {
+        String completeTaskUrl = camundaBaseUrl + "/task/{taskId}/complete";
+        String taskId = retrieveTaskIdForProcessInstance(processInstanceId);
+        if (isAccepted) {
+            // Logique pour traiter une demande acceptée
+            System.out.println("Demande acceptée.");
+            completeTask(completeTaskUrl, taskId, createVariablesForAcceptance());
+        } else {
+            // Logique pour traiter une demande refusée
+            System.out.println("Demande refusée.");
+            completeTask(completeTaskUrl, taskId, createVariablesForRejection());
+        }
+    }
+
+    private String retrieveTaskIdForProcessInstance(String processInstanceId) {
+        String taskQueryUrl = camundaBaseUrl + "/process-instance/{processInstanceId}/task";
+        Map<String, String> params = new HashMap<>();
+        params.put("processInstanceId", processInstanceId);
+        RestTemplate restTemplate = new RestTemplate();
+        String taskId = restTemplate.getForObject(taskQueryUrl, String.class, params);
+        // Assuming the response contains the task ID, adjust this based on the actual Camunda response
+        return taskId;
+    }
+
+    private void completeTask(String completeTaskUrl, String taskId, Map<String, Object> variables) {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.postForObject(completeTaskUrl, null, Void.class, taskId, variables);
+    }
+
+    private Map<String, Object> createVariablesForAcceptance() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", true);
+        return variables;
+    }
+    private Map<String, Object> createVariablesForRejection() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", false);
+        return variables;
     }
 }

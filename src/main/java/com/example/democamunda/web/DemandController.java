@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @CrossOrigin("*")
 public class DemandController implements DemandControllerApi {
@@ -36,6 +39,19 @@ public class DemandController implements DemandControllerApi {
     public ResponseEntity<?> cancelDemand(String task, Demand demand) {
         camundaService.completeCamundaTask(task);
         return demandService.cancelDemand(demand);
+    }
+
+    private Map<String, Object> createVariablesForAcceptance() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", true);
+        return variables;
+    }
+
+
+    private Map<String, Object> createVariablesForRejection() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("approved", false);
+        return variables;
     }
 
     @Override
