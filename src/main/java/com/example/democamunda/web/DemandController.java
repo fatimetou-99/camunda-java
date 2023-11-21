@@ -25,37 +25,28 @@ public class DemandController implements DemandControllerApi {
 
     @Override
     public ResponseEntity<Object> saveDemand(Demand demand) {
-        camundaService.startCamundaProcess(demand.getId());
+        // start process
+
+
+        camundaService.treatOrder("fbbc8970-885c-11ee-9773-02d230d617a1",false);
+
+        // set variable to true or false
         return demandService.saveDemand(demand);
     }
 
     @Override
     public ResponseEntity<?> submitDemand(String task, Demand demand) {
-        camundaService.completeCamundaTask(task);
         return demandService.submitDemand(demand);
     }
 
     @Override
     public ResponseEntity<?> cancelDemand(String task, Demand demand) {
-        camundaService.completeCamundaTask(task);
+        camundaService.completeTaskWithoutVariables(task);
         return demandService.cancelDemand(demand);
     }
 
-    private Map<String, Object> createVariablesForAcceptance() {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("approved", true);
-        return variables;
-    }
-
-
-    private Map<String, Object> createVariablesForRejection() {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("approved", false);
-        return variables;
-    }
-
     @Override
-    public ResponseEntity<?> inprogressDemand(Demand demand) {
+    public ResponseEntity<?> inProgressDemand(Demand demand) {
         return demandService.inprogressDemand(demand);
     }
 
@@ -69,4 +60,6 @@ public class DemandController implements DemandControllerApi {
     public ResponseEntity<?> rejectDemand(Demand demand) {
         return demandService.rejectDemand(demand);
     }
+
+
 }

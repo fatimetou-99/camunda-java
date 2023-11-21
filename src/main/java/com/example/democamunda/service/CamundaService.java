@@ -1,5 +1,7 @@
 package com.example.democamunda.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -7,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -19,30 +22,59 @@ public class CamundaService {
 
     private final String camundaBaseUrl = "http://localhost:8080/engine-rest";
 
-    public void startCamundaProcess(Long articleId) {
+    public String startCamundaProcess() {
+
+        String idValue = "";
+
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
 
-        String requestBody = "{\"businessKey\":\"" + articleId + "\"}";
+//        String requestBody = "{\"businessKey\":\"" + articleId + "\"}";
+        String requestBody = "{}";
+
         HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
 
-        String url = camundaBaseUrl + "/process-definition/key/test/start";
+        String url = camundaBaseUrl + "/process-definition/key/order/start";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
-        System.err.println("res"+response);
+
+        String responseBody = response.getBody();
+        try {
+            // Use Jackson ObjectMapper to parse the JSON string
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+            // Extract the "id" variable
+            JsonNode id = jsonNode.path("id");
+            idValue = id.asText();
+
+            // Print the result
+            System.out.println("Id value: " + idValue);
+
+        } catch (Exception e) {
+            // Handle JSON parsing exception
+            e.printStackTrace();
+        }
+
         if (response.getStatusCode().is2xxSuccessful()) {
             System.out.println("Process started successfully.");
         } else {
             System.err.println("Failed to start the process. Response: " + response.getBody());
         }
+
+        return idValue;
     }
 
 
     public void completeCamundaTask(String taskId) {
+
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
+
         //taskId = "b0447c76-7e22-11ee-bb9b-0242ac110002";
         // Construct the request body with task variables (if any)
+
         Map<String, Object> requestBodyMap = new HashMap<>();
+
         // requestBodyMap.put("variables", variables);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBodyMap, headers);
@@ -58,43 +90,72 @@ public class CamundaService {
     }
 
 
-    public void treatOrder(String processInstanceId, boolean isAccepted) {
+    public void treatOrder(String taskId, boolean isAccepted) {
         String completeTaskUrl = camundaBaseUrl + "/task/{taskId}/complete";
-        String taskId = retrieveTaskIdForProcessInstance(processInstanceId);
+
         if (isAccepted) {
-            // Logique pour traiter une demande acceptée
-            System.out.println("Demande acceptée.");
+            System.out.println("Order Accepted.");
             completeTask(completeTaskUrl, taskId, createVariablesForAcceptance());
-        } else {
-            // Logique pour traiter une demande refusée
-            System.out.println("Demande refusée.");
+        }
+        else {
+            System.out.println("Order Refused.");
             completeTask(completeTaskUrl, taskId, createVariablesForRejection());
         }
     }
 
-    private String retrieveTaskIdForProcessInstance(String processInstanceId) {
-        String taskQueryUrl = camundaBaseUrl + "/process-instance/{processInstanceId}/task";
-        Map<String, String> params = new HashMap<>();
-        params.put("processInstanceId", processInstanceId);
+    public String retrieveTaskIdForProcessInstance(String processDefinitionKey) {
+        String taskQueryUrl = camundaBaseUrl + "/process-instance/task?processDefinitionKey="+processDefinitionKey;
+//        Map<String, String> params = new HashMap<>();
+//        params.put("processDefinitionKey", processDefinitionKey);
         RestTemplate restTemplate = new RestTemplate();
-        String taskId = restTemplate.getForObject(taskQueryUrl, String.class, params);
-        // Assuming the response contains the task ID, adjust this based on the actual Camunda response
-        return taskId;
+
+        try {
+            System.out.println(restTemplate);
+            String taskId = restTemplate.getForObject(taskQueryUrl, String.class);
+            return taskId;
+        } catch (HttpClientErrorException.NotFound e) {
+            System.err.println("Process instance not found. Error message: " + e.getResponseBodyAsString());
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private void completeTask(String completeTaskUrl, String taskId, Map<String, Object> variables) {
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.postForObject(completeTaskUrl, null, Void.class, taskId, variables);
+
+        System.out.println("variables " + variables);
+
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(variables);
+        restTemplate.postForEntity(completeTaskUrl, requestEntity, Void.class, taskId);
+
+    }
+
+    public void completeTaskWithoutVariables(String taskId) {
+        String completeTaskUrl = camundaBaseUrl + "/task/{taskId}/complete";
+
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.postForEntity(completeTaskUrl, null, Void.class, taskId);
+
     }
 
     private Map<String, Object> createVariablesForAcceptance() {
         Map<String, Object> variables = new HashMap<>();
-        variables.put("approved", true);
+
+        Map<String, Object> approvedMap = new HashMap<>();
+        approvedMap.put("value", "true");
+
+        variables.put("approved", approvedMap);
         return variables;
     }
     private Map<String, Object> createVariablesForRejection() {
         Map<String, Object> variables = new HashMap<>();
-        variables.put("approved", false);
+
+        Map<String, Object> approvedMap = new HashMap<>();
+        approvedMap.put("value", "false");
+
+        variables.put("approved", approvedMap);
         return variables;
     }
 }

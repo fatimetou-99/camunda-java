@@ -16,7 +16,7 @@ public interface DemandControllerApi {
     public ResponseEntity<?>  submitDemand(@RequestParam("task") String task, @RequestBody Demand demand);
 
     @PutMapping(Constants.IN_PROGRESS)
-    public ResponseEntity<?>  inprogressDemand(@RequestBody Demand demand);
+    public ResponseEntity<?>  inProgressDemand(@RequestBody Demand demand);
 
     @PutMapping(Constants.CONFIRM)
     public ResponseEntity<?>  confirmDemand(@RequestBody Demand demand);
