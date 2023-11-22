@@ -13,7 +13,7 @@ public interface DemandControllerApi {
     public ResponseEntity<Object> saveDemand(@RequestBody Demand demand);
 
     @PutMapping(Constants.SUBMIT)
-    public ResponseEntity<?>  submitDemand(@RequestParam("task") String task, @RequestBody Demand demand);
+    public ResponseEntity<?>  submitDemand(@RequestBody Demand demand);
 
     @PutMapping(Constants.IN_PROGRESS)
     public ResponseEntity<?>  inProgressDemand(@RequestBody Demand demand);
@@ -22,7 +22,7 @@ public interface DemandControllerApi {
     public ResponseEntity<?>  confirmDemand(@RequestBody Demand demand);
 
     @PutMapping(Constants.CANCEL)
-    public ResponseEntity<?>  cancelDemand(@RequestParam("task") String task,@RequestBody Demand demand);
+    public ResponseEntity<?>  cancelDemand(@RequestBody Demand demand);
 
     @PutMapping(Constants.REJECT)
     public ResponseEntity<?>  rejectDemand(@RequestBody Demand demand);

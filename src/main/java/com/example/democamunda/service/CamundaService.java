@@ -1,13 +1,14 @@
 package com.example.democamunda.service;
 
+import com.example.democamunda.dto.Approved;
+import com.example.democamunda.dto.Task;
+import com.example.democamunda.dto.Variables;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -95,6 +96,7 @@ public class CamundaService {
 
         if (isAccepted) {
             System.out.println("Order Accepted.");
+
             completeTask(completeTaskUrl, taskId, createVariablesForAcceptance());
         }
         else {
@@ -103,40 +105,58 @@ public class CamundaService {
         }
     }
 
-    public String retrieveTaskIdForProcessInstance(String processDefinitionKey) {
-        String taskQueryUrl = camundaBaseUrl + "/process-instance/task?processDefinitionKey="+processDefinitionKey;
-//        Map<String, String> params = new HashMap<>();
-//        params.put("processDefinitionKey", processDefinitionKey);
-        RestTemplate restTemplate = new RestTemplate();
+    public List<Task> retrieveTaskId(String processDefinitionKey) {
+        String taskQueryUrl = camundaBaseUrl + "/task?processDefinitionKey=" + processDefinitionKey;
+        ResponseEntity<List<Task>> responseEntity = restTemplate.exchange(taskQueryUrl, HttpMethod.GET, null, new ParameterizedTypeReference<List<Task>>() {});
 
         try {
-            System.out.println(restTemplate);
-            String taskId = restTemplate.getForObject(taskQueryUrl, String.class);
-            return taskId;
-        } catch (HttpClientErrorException.NotFound e) {
+            return responseEntity.getBody();
+        }
+        catch (HttpClientErrorException.NotFound e) {
             System.err.println("Process instance not found. Error message: " + e.getResponseBodyAsString());
             return null;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
     private void completeTask(String completeTaskUrl, String taskId, Map<String, Object> variables) {
+
+        Map<String, Object>  final_variables = new HashMap<>();
+        final_variables.put("variables" , variables);
+
         RestTemplate restTemplate = new RestTemplate();
+        System.out.println(final_variables);
 
-        System.out.println("variables " + variables);
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(variables);
-        restTemplate.postForEntity(completeTaskUrl, requestEntity, Void.class, taskId);
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(final_variables, headers);
+        System.out.println(requestEntity.getBody());
+        try{
+            ResponseEntity<Object> responseEntity = restTemplate.postForEntity(completeTaskUrl, requestEntity, Object.class, taskId);
+        }
+
+        catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
 
     }
 
     public void completeTaskWithoutVariables(String taskId) {
-        String completeTaskUrl = camundaBaseUrl + "/task/{taskId}/complete";
+        String completeTaskUrl = camundaBaseUrl + "/task/"+ taskId +"/complete";
+        System.out.println(completeTaskUrl);
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Object> requestEntity = new HttpEntity<>(null, headers);
 
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.postForEntity(completeTaskUrl, null, Void.class, taskId);
+        restTemplate.postForEntity(completeTaskUrl, requestEntity, Void.class);
 
     }
 
@@ -144,7 +164,7 @@ public class CamundaService {
         Map<String, Object> variables = new HashMap<>();
 
         Map<String, Object> approvedMap = new HashMap<>();
-        approvedMap.put("value", "true");
+        approvedMap.put("value", true);
 
         variables.put("approved", approvedMap);
         return variables;
@@ -153,7 +173,7 @@ public class CamundaService {
         Map<String, Object> variables = new HashMap<>();
 
         Map<String, Object> approvedMap = new HashMap<>();
-        approvedMap.put("value", "false");
+        approvedMap.put("value", false);
 
         variables.put("approved", approvedMap);
         return variables;

@@ -2,10 +2,14 @@ package com.example.democamunda.dto;
 
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@AllArgsConstructor  // Generates all-args constructor
-
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
 public class Variables {
-    public Approved approved;
-
+    private Approved approved;
 }
