@@ -51,7 +51,6 @@ public class DemandController implements DemandControllerApi {
         List<Task> tasks = camundaService.retrieveTaskId("order");
 
         Task task = tasks.get(4);
-//        System.out.println(task.getId());
 
         camundaService.completeTaskWithoutVariables("42da961f-8959-11ee-9773-02d230d617a1");
         return demandService.cancelDemand(demand);
